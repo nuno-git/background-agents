@@ -1,0 +1,69 @@
+# Docker Compose for local development.
+# Usage:
+#   1. Build sandbox image:  docker build -t open-inspect-sandbox:latest -f packages/local-sandbox-manager/Dockerfile.sandbox .
+#   2. Copy env file:        cp .env.docker .env
+#   3. Start services:       docker compose up --build -d
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: packages/web/Dockerfile
+      args:
+        NEXT_PUBLIC_WS_URL: ws://localhost:8787
+    ports:
+      - "3000:3000"
+    environment:
+      - CONTROL_PLANE_URL=http://control-plane:8787
+    env_file:
+      - .env
+    networks:
+      - open-inspect
+    depends_on:
+      - control-plane
+
+  control-plane:
+    build:
+      context: .
+      dockerfile: packages/local-control-plane/Dockerfile
+    ports:
+      - "8787:8787"
+    environment:
+      - PORT=8787
+      - DATA_DIR=/data
+      - SANDBOX_MANAGER_URL=http://sandbox-manager:8000
+      - WORKER_URL=http://control-plane:8787
+      - WEB_APP_URL=http://web:3000
+    env_file:
+      - .env
+    volumes:
+      - control-plane-data:/data
+    networks:
+      - open-inspect
+    depends_on:
+      - sandbox-manager
+
+  sandbox-manager:
+    build:
+      context: .
+      dockerfile: packages/local-sandbox-manager/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - SNAPSHOT_DIR=/data/snapshots
+      - DOCKER_NETWORK=open-inspect
+    env_file:
+      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - sandbox-snapshots:/data/snapshots
+    networks:
+      - open-inspect
+
+networks:
+  open-inspect:
+    name: open-inspect
+
+volumes:
+  control-plane-data:
+  sandbox-snapshots:

@@ -22,6 +22,13 @@ export const VALID_MODELS = [
   "opencode/kimi-k2.5",
   "opencode/minimax-m2.5",
   "opencode/glm-5",
+  "opencode/kimi-k2.5-free",
+  "opencode/minimax-m2.5-free",
+  "opencode/glm-5-free",
+  "opencode/glm-4.7-free",
+  "zai-coding-plan/glm-4.7",
+  "zai-coding-plan/glm-4.7-flash",
+  "zai-coding-plan/glm-5",
 ] as const;
 
 export type ValidModel = (typeof VALID_MODELS)[number];
@@ -125,6 +132,23 @@ export const MODEL_OPTIONS: ModelCategory[] = [
       { id: "opencode/kimi-k2.5", name: "Kimi K2.5", description: "Moonshot AI" },
       { id: "opencode/minimax-m2.5", name: "MiniMax M2.5", description: "MiniMax" },
       { id: "opencode/glm-5", name: "GLM 5", description: "Z.ai 744B MoE" },
+    ],
+  },
+  {
+    category: "OpenCode Zen (Free)",
+    models: [
+      { id: "opencode/glm-4.7-free", name: "GLM 4.7 Free", description: "Z.ai GLM 4.7" },
+      { id: "opencode/glm-5-free", name: "GLM 5 Free", description: "Z.ai 744B MoE" },
+      { id: "opencode/kimi-k2.5-free", name: "Kimi K2.5 Free", description: "Moonshot AI" },
+      { id: "opencode/minimax-m2.5-free", name: "MiniMax M2.5 Free", description: "MiniMax" },
+    ],
+  },
+  {
+    category: "Z.ai Coding Plan",
+    models: [
+      { id: "zai-coding-plan/glm-4.7", name: "GLM 4.7", description: "Z.ai Coding Plan" },
+      { id: "zai-coding-plan/glm-4.7-flash", name: "GLM 4.7 Flash", description: "Z.ai fast variant" },
+      { id: "zai-coding-plan/glm-5", name: "GLM 5", description: "Z.ai latest" },
     ],
   },
 ];
