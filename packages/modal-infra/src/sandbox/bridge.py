@@ -443,6 +443,7 @@ class AgentBridge:
         content = cmd.get("content", "")
         model = cmd.get("model")
         reasoning_effort = cmd.get("reasoningEffort")
+        agent = cmd.get("agent")
         author_data = cmd.get("author", {})
         start_time = time.time()
         outcome = "success"
@@ -452,6 +453,7 @@ class AgentBridge:
             message_id=message_id,
             model=model,
             reasoning_effort=reasoning_effort,
+            agent=agent,
         )
 
         github_name = author_data.get("githubName")
@@ -471,7 +473,7 @@ class AgentBridge:
             had_error = False
             error_message = None
             async for event in self._stream_opencode_response_sse(
-                message_id, content, model, reasoning_effort
+                message_id, content, model, reasoning_effort, agent
             ):
                 if event.get("type") == "error":
                     had_error = True
@@ -618,6 +620,7 @@ class AgentBridge:
         model: str | None,
         opencode_message_id: str | None = None,
         reasoning_effort: str | None = None,
+        agent: str | None = None,
     ) -> dict[str, Any]:
         """Build request body for OpenCode prompt requests.
 
@@ -666,6 +669,9 @@ class AgentBridge:
                     }
 
             request_body["model"] = model_spec
+
+        if agent:
+            request_body["agent"] = agent
 
         return request_body
 
@@ -720,6 +726,7 @@ class AgentBridge:
         content: str,
         model: str | None = None,
         reasoning_effort: str | None = None,
+        agent: str | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
         """Stream response from OpenCode using Server-Sent Events.
 
@@ -740,7 +747,7 @@ class AgentBridge:
 
         opencode_message_id = OpenCodeIdentifier.ascending("message")
         request_body = self._build_prompt_request_body(
-            content, model, opencode_message_id, reasoning_effort
+            content, model, opencode_message_id, reasoning_effort, agent
         )
 
         sse_url = f"{self.opencode_base_url}/event"
