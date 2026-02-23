@@ -305,22 +305,23 @@ Never leave commits unpushed. Every task MUST end with `git push`.
 - Report results in structured format"""
 
         opencode_config = {
-            "model": f"{provider}/{model}",
             "default_agent": "druppie-builder",
             "permission": {
                 "*": {
                     "*": "allow",
                 },
             },
-            "agents": {
+            "agent": {
                 "druppie-builder": {
                     "description": "Druppie coding agent — implements code and pushes to git",
                     "mode": "primary",
+                    "model": f"{provider}/{model}",
                     "prompt": druppie_builder_prompt,
                 },
                 "druppie-tester": {
                     "description": "Druppie testing agent — writes tests and validates code",
                     "mode": "primary",
+                    "model": f"{provider}/{model}",
                     "prompt": druppie_tester_prompt,
                 },
             },
