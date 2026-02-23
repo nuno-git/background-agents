@@ -96,6 +96,11 @@ async def create_sandbox(
         env_vars["GITHUB_APP_TOKEN"] = github_app_token
         env_vars["GITHUB_TOKEN"] = github_app_token
 
+    # Pass through GIT_URL for non-GitHub git hosts (e.g. Gitea)
+    git_url = body.get("git_url")
+    if git_url:
+        env_vars["GIT_URL"] = git_url
+
     if config.ANTHROPIC_API_KEY:
         env_vars["ANTHROPIC_API_KEY"] = config.ANTHROPIC_API_KEY
     if config.GLM_API_KEY:

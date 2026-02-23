@@ -60,6 +60,7 @@ class SandboxSupervisor:
         self.repo_owner = os.environ.get("REPO_OWNER", "")
         self.repo_name = os.environ.get("REPO_NAME", "")
         self.github_app_token = os.environ.get("GITHUB_APP_TOKEN", "")
+        self.git_url = os.environ.get("GIT_URL", "")
 
         # Parse session config if provided
         session_config_json = os.environ.get("SESSION_CONFIG", "{}")
@@ -108,8 +109,10 @@ class SandboxSupervisor:
                 authenticated=bool(self.github_app_token),
             )
 
-            # Use authenticated URL if GitHub App token is available
-            if self.github_app_token:
+            # Use GIT_URL override (e.g. Gitea), or fall back to GitHub
+            if self.git_url:
+                clone_url = self.git_url
+            elif self.github_app_token:
                 clone_url = f"https://x-access-token:{self.github_app_token}@github.com/{self.repo_owner}/{self.repo_name}.git"
             else:
                 clone_url = f"https://github.com/{self.repo_owner}/{self.repo_name}.git"
@@ -139,8 +142,14 @@ class SandboxSupervisor:
 
         try:
             # Configure remote URL with auth token if available
-            if self.github_app_token:
+            if self.git_url:
+                auth_url = self.git_url
+            elif self.github_app_token:
                 auth_url = f"https://x-access-token:{self.github_app_token}@github.com/{self.repo_owner}/{self.repo_name}.git"
+            else:
+                auth_url = None
+
+            if auth_url:
                 await asyncio.create_subprocess_exec(
                     "git",
                     "remote",
@@ -665,8 +674,14 @@ class SandboxSupervisor:
 
         try:
             # Configure remote URL with auth token if available
-            if self.github_app_token:
+            if self.git_url:
+                auth_url = self.git_url
+            elif self.github_app_token:
                 auth_url = f"https://x-access-token:{self.github_app_token}@github.com/{self.repo_owner}/{self.repo_name}.git"
+            else:
+                auth_url = None
+
+            if auth_url:
                 await asyncio.create_subprocess_exec(
                     "git",
                     "remote",

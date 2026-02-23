@@ -26,6 +26,7 @@ export interface CreateSandboxRequest {
   provider?: string;
   model?: string;
   userEnvVars?: Record<string, string>;
+  gitUrl?: string;
 }
 
 export interface CreateSandboxResponse {
@@ -109,6 +110,7 @@ export class LocalSandboxClient {
         provider: request.provider || "zai-coding-plan",
         model: request.model || "glm-4.7",
         user_env_vars: request.userEnvVars || null,
+        git_url: request.gitUrl || null,
       }),
     });
 

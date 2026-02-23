@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS session (
   opencode_session_id TEXT,
   model TEXT DEFAULT 'anthropic/claude-haiku-4-5',
   reasoning_effort TEXT,
+  git_url TEXT,
   status TEXT DEFAULT 'created',
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
@@ -936,6 +937,7 @@ export class SessionInstance {
         sandboxAuthToken,
         provider: "anthropic",
         model: session.model || "zai-coding-plan/glm-4.7",
+        gitUrl: session.git_url || undefined,
       });
 
       if (result.modalObjectId) {
@@ -1108,8 +1110,8 @@ export class SessionInstance {
 
     // Upsert session
     this.sql.exec(
-      `INSERT OR REPLACE INTO session (id, session_name, title, repo_owner, repo_name, repo_id, model, reasoning_effort, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR REPLACE INTO session (id, session_name, title, repo_owner, repo_name, repo_id, model, reasoning_effort, git_url, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       sessionId,
       sessionName,
       body.title ?? null,
@@ -1118,6 +1120,7 @@ export class SessionInstance {
       body.repoId ?? null,
       body.model || "zai-coding-plan/glm-4.7",
       body.reasoningEffort ?? null,
+      body.gitUrl ?? null,
       "created",
       now,
       now

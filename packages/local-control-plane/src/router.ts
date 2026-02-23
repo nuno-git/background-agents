@@ -173,6 +173,7 @@ export function setupRoutes(
       githubName: body.githubName,
       githubEmail: body.githubEmail,
       githubTokenEncrypted: body.githubTokenEncrypted ?? null,
+      gitUrl: body.gitUrl ?? null,
     });
 
     if (!initResult) {
