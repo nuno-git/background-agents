@@ -104,6 +104,7 @@ CREATE TABLE IF NOT EXISTS messages (
   source TEXT NOT NULL,
   model TEXT,
   reasoning_effort TEXT,
+  agent TEXT,
   attachments TEXT,
   callback_context TEXT,
   status TEXT DEFAULT 'pending',
@@ -703,6 +704,7 @@ export class SessionInstance {
       content: nextMsg.content,
       model: nextMsg.model || session?.model,
       reasoningEffort: nextMsg.reasoning_effort || session?.reasoning_effort,
+      agent: nextMsg.agent || null,
       author: {
         userId: participant?.user_id || "",
         githubName: participant?.github_name || null,
@@ -1287,14 +1289,15 @@ export class SessionInstance {
     }
 
     this.sql.exec(
-      `INSERT INTO messages (id, author_id, content, source, model, reasoning_effort, callback_context, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO messages (id, author_id, content, source, model, reasoning_effort, agent, callback_context, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       messageId,
       participant.id,
       body.content,
       body.source || "web",
       body.model ?? null,
       body.reasoningEffort ?? null,
+      body.agent ?? null,
       body.callbackContext ? JSON.stringify(body.callbackContext) : null,
       "pending",
       now

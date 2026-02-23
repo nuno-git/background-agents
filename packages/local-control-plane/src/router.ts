@@ -234,6 +234,7 @@ export function setupRoutes(
       reasoningEffort: body.reasoningEffort,
       attachments: body.attachments,
       callbackContext: body.callbackContext,
+      agent: body.agent,
     });
 
     // Touch session index timestamp
