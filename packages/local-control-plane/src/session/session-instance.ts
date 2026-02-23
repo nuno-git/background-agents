@@ -813,6 +813,19 @@ export class SessionInstance {
         await this.processMessageQueue();
         break;
 
+      case "conversation_history":
+        this.sql.exec(
+          `INSERT INTO events (id, type, data, message_id, created_at)
+           VALUES (?, ?, ?, ?, ?)`,
+          generateId(),
+          event.type,
+          JSON.stringify(event),
+          event.messageId || null,
+          now
+        );
+        this.broadcast({ type: "sandbox_event", event });
+        break;
+
       case "git_sync":
         if (event.status) {
           this.sql.exec(

@@ -1182,6 +1182,25 @@ class AgentBridge:
                                 "messageId": message_id,
                             }
 
+            # Yield the full conversation for governance/audit persistence
+            conversation_messages = []
+            for msg in messages:
+                info = msg.get("info", {})
+                conversation_messages.append({
+                    "id": info.get("id", ""),
+                    "role": info.get("role", ""),
+                    "parentId": info.get("parentID"),
+                    "sessionId": info.get("sessionID"),
+                    "finish": info.get("finish"),
+                    "parts": msg.get("parts", []),
+                })
+            if conversation_messages:
+                yield {
+                    "type": "conversation_history",
+                    "messageId": message_id,
+                    "messages": conversation_messages,
+                }
+
         except Exception as e:
             self.log.error("bridge.final_state_error", exc=e)
 
