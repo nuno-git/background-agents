@@ -108,6 +108,7 @@ class DockerContainerManager:
         cmd = [
             "docker", "run",
             "-d",  # detach
+            "--rm",  # auto-remove container when process exits
             "--name", container_name,
             *security_flags,
             *env_flags,
