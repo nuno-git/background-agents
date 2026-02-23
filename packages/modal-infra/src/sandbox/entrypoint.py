@@ -276,11 +276,52 @@ class SandboxSupervisor:
         # Model format is "provider/model", e.g. "anthropic/claude-sonnet-4-6"
         provider = self.session_config.get("provider", "anthropic")
         model = self.session_config.get("model", "claude-sonnet-4-6")
+
+        # Agent definitions for Druppie sandbox
+        druppie_builder_prompt = """## Git Workflow (MANDATORY)
+After completing ALL code changes:
+1. Stage files: `git add -A`
+2. Commit: `git commit -m "descriptive message"`
+3. Push: `git push origin HEAD`
+
+Never leave commits unpushed. Every task MUST end with `git push`.
+
+## Coding Standards
+- Write clean, working code
+- Follow existing project patterns
+- Create proper Dockerfiles for web apps"""
+
+        druppie_tester_prompt = """## Git Workflow (MANDATORY)
+After completing ALL test changes:
+1. Stage files: `git add -A`
+2. Commit: `git commit -m "descriptive message"`
+3. Push: `git push origin HEAD`
+
+Never leave commits unpushed. Every task MUST end with `git push`.
+
+## Testing Standards
+- Auto-detect test framework from project files
+- Write comprehensive tests with good coverage
+- Report results in structured format"""
+
         opencode_config = {
             "model": f"{provider}/{model}",
+            "default_agent": "druppie-builder",
             "permission": {
                 "*": {
                     "*": "allow",
+                },
+            },
+            "agents": {
+                "druppie-builder": {
+                    "description": "Druppie coding agent — implements code and pushes to git",
+                    "mode": "primary",
+                    "prompt": druppie_builder_prompt,
+                },
+                "druppie-tester": {
+                    "description": "Druppie testing agent — writes tests and validates code",
+                    "mode": "primary",
+                    "prompt": druppie_tester_prompt,
                 },
             },
         }
@@ -326,6 +367,7 @@ class SandboxSupervisor:
         env = {
             **os.environ,
             "OPENCODE_CONFIG_CONTENT": json.dumps(opencode_config),
+            "OPENCODE_DISABLE_PROJECT_CONFIG": "true",
             # Disable OpenCode's question tool in headless mode. The tool blocks
             # on a Promise waiting for user input via the HTTP API, but the bridge
             # has no channel to relay questions to the web client and back. Without
