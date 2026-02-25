@@ -3,45 +3,78 @@
 # Install Kata Containers and configure containerd to use the Kata runtime.
 # Run as root (or with sudo).
 #
+# Uses the official pre-built kata-static tarball from GitHub releases.
+# See: https://github.com/kata-containers/kata-containers/releases
+#
 set -euo pipefail
 
-echo "=== Kata Containers Setup ==="
+KATA_VERSION="${KATA_VERSION:-3.27.0}"
+
+echo "=== Kata Containers Setup (v${KATA_VERSION}) ==="
 
 # 1. Check KVM support (nested virtualization must be enabled on the hypervisor)
 if [ ! -e /dev/kvm ]; then
   echo "ERROR: /dev/kvm not found. Enable nested virtualization on the hypervisor first."
   echo "  For QEMU/KVM host: set cpu model to 'host' or enable 'vmx'/'svm' nesting."
+  echo "  For WSL2: see https://learn.microsoft.com/en-us/windows/wsl/wsl-config"
   exit 1
 fi
 
 echo "[1/5] KVM device found."
 
-# 2. Install Kata Containers from the official repo
-if ! command -v kata-runtime &>/dev/null; then
-  echo "[2/5] Installing Kata Containers..."
+# 2. Install Kata Containers from pre-built release tarball
+KATA_DIR="/opt/kata"
+if [ -x "${KATA_DIR}/bin/kata-runtime" ]; then
+  INSTALLED=$("${KATA_DIR}/bin/kata-runtime" --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' || echo "unknown")
+  echo "[2/5] Kata Containers already installed (${INSTALLED})."
+  if [ "$INSTALLED" != "$KATA_VERSION" ]; then
+    echo "  To upgrade, remove ${KATA_DIR} and re-run this script."
+  fi
+else
+  echo "[2/5] Installing Kata Containers v${KATA_VERSION}..."
 
-  # Add Kata repo key and source
   ARCH=$(uname -m)
-  if [ "$ARCH" = "x86_64" ]; then
-    ARCH="amd64"
+  case "$ARCH" in
+    x86_64)  ARCH="amd64" ;;
+    aarch64) ARCH="arm64" ;;
+    *)
+      echo "ERROR: Unsupported architecture: $ARCH"
+      exit 1
+      ;;
+  esac
+
+  TARBALL="kata-static-${KATA_VERSION}-${ARCH}.tar.zst"
+  URL="https://github.com/kata-containers/kata-containers/releases/download/${KATA_VERSION}/${TARBALL}"
+
+  echo "  Downloading ${URL}..."
+
+  # Install zstd if not present
+  if ! command -v zstd &>/dev/null; then
+    echo "  Installing zstd..."
+    sudo apt-get update -qq && sudo apt-get install -y -qq zstd
   fi
 
-  # Install from official Kata packages
-  sudo mkdir -p /etc/apt/keyrings
-  curl -fsSL https://download.opensuse.org/repositories/home:/katacontainers:/releases:/${ARCH}:/master/xUbuntu_22.04/Release.key \
-    | gpg --dearmor | sudo tee /etc/apt/keyrings/kata-containers.gpg > /dev/null
+  TMPDIR=$(mktemp -d)
+  trap "rm -rf ${TMPDIR}" EXIT
 
-  echo "deb [signed-by=/etc/apt/keyrings/kata-containers.gpg] https://download.opensuse.org/repositories/home:/katacontainers:/releases:/${ARCH}:/master/xUbuntu_22.04/ /" \
-    | sudo tee /etc/apt/sources.list.d/kata-containers.list
+  curl -fSL -o "${TMPDIR}/${TARBALL}" "$URL"
+  echo "  Extracting to /..."
+  sudo tar -C / --zstd -xf "${TMPDIR}/${TARBALL}"
 
-  sudo apt-get update
-  sudo apt-get install -y kata-containers
-else
-  echo "[2/5] Kata Containers already installed."
+  # Symlink to /usr/local/bin so containerd finds the shim
+  sudo ln -sf "${KATA_DIR}/bin/containerd-shim-kata-v2" /usr/local/bin/containerd-shim-kata-v2
+  sudo ln -sf "${KATA_DIR}/bin/kata-runtime" /usr/local/bin/kata-runtime
+
+  echo "  Installed to ${KATA_DIR}."
 fi
 
-# 3. Configure containerd with Kata runtime handler
+# 3. Install and configure containerd (if not present)
 echo "[3/5] Configuring containerd..."
+
+if ! command -v containerd &>/dev/null; then
+  echo "  Installing containerd..."
+  sudo apt-get update -qq && sudo apt-get install -y -qq containerd
+fi
 
 CONTAINERD_CONFIG="/etc/containerd/config.toml"
 
@@ -61,14 +94,13 @@ else
   fi
 
   # Add Kata runtime handler
-  # Append to the end of the config (containerd merges plugin configs)
-  sudo tee -a "$CONTAINERD_CONFIG" > /dev/null <<'EOF'
+  sudo tee -a "$CONTAINERD_CONFIG" > /dev/null <<EOF
 
 # Kata Containers runtime handler
 [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.kata]
   runtime_type = "io.containerd.kata.v2"
   [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.kata.options]
-    ConfigPath = "/opt/kata/share/defaults/kata-containers/configuration-qemu.toml"
+    ConfigPath = "${KATA_DIR}/share/defaults/kata-containers/configuration-qemu.toml"
 EOF
 
   echo "  Added Kata runtime handler to containerd config."
@@ -91,7 +123,7 @@ TEST_NAME="kata-verify-$$"
 if sudo ctr run --rm --runtime io.containerd.kata.v2 docker.io/library/alpine:latest "$TEST_NAME" uname -r; then
   echo ""
   echo "=== SUCCESS ==="
-  echo "Kata Containers installed and working."
+  echo "Kata Containers v${KATA_VERSION} installed and working."
   echo "Guest kernel should differ from host kernel ($(uname -r))."
 else
   echo ""
